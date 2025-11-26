@@ -305,21 +305,24 @@ export default function TimelineCanvas({
             }}
             onMouseDown={() => onSelect(p.id)}
           >
-            <div className="font-semibold text-sm">{p.grade}</div>
-            <div className="text-xs">{p.code}</div>
-            <div className="text-[11px] opacity-90">{p.type} • {format(p.ton)}T • GP:{format(p.gp)}</div>
-
+            <div style={{ position: "relative", zIndex: 2 }}>
+              <div className="font-semibold text-sm">{p.grade}</div>
+              <div className="text-xs">{p.code}</div>
+              <div className="text-[11px] opacity-90">
+                {p.type} • {format(p.ton)}T • GP:{format(p.gp)}
+              </div>
+            </div>
             {/* Arrow overlay inside block */}
             {p.blockType !== "normal" && (
               <svg
                 width={p.pxWidth}
                 height={100}
-                style={{ position: "absolute", top: 0, left: 0, pointerEvents: "none", overflow: "visible", }}>
+                style={{ position: "absolute", top: 0, left: 0, pointerEvents: "none", overflow: "visible", zIndex: 0, }}>
                 {p.blockType === "increase" ? (
                   <>
-                    <line x1={0} y1={100} x2={p.pxWidth} y2={0} stroke="#000" strokeWidth={2} />
+                    <line x1={0} y1={100} x2={p.pxWidth} y2={0} stroke="#474242ff" strokeWidth={2} />
                     <polygon
-                      fill="#000"
+                      fill="#474242ff"
                       points={(() => {
                         const tipX = p.pxWidth;
                         const tipY = 0;
@@ -341,9 +344,9 @@ export default function TimelineCanvas({
                   </>
                 ) : (
                   <>
-                    <line x1={0} y1={0} x2={p.pxWidth} y2={100} stroke="#000" strokeWidth={2} />
+                    <line x1={0} y1={0} x2={p.pxWidth} y2={100} stroke="#474242ff" strokeWidth={2} />
                     <polygon
-                      fill="#000"
+                      fill="#474242ff"
                       points={(() => {
                         const tipX = p.pxWidth;
                         const tipY = 100;
@@ -473,6 +476,7 @@ export default function TimelineCanvas({
                 setArrows={setArrows}
                 pushHistory={pushHistory}
                 onSelect={onSelect}
+                askConfirm={askConfirm}
               />
             );
           }
@@ -808,6 +812,11 @@ function RotatableArrow({ w = 120, h = 40, angle = 0, onChangeAngle }) {
 function Arrow({ a, index, setArrows, pushHistory, selectedArrowId, onSelect, askConfirm }) {
   const wrapperRef = React.useRef(null);
 
+  const isVertical = a.angle === 90 || a.angle === 270;
+
+  const displayW = isVertical ? a.h : a.w;
+  const displayH = isVertical ? a.w : a.h;
+
   const updateArrow = (patch) =>
     setArrows(prev => {
       const copy = [...prev];
@@ -847,18 +856,23 @@ function Arrow({ a, index, setArrows, pushHistory, selectedArrowId, onSelect, as
   return (
     <Rnd
       ref={wrapperRef}
-      size={{ width: a.w || 120, height: a.h || 24 }}
+      size={{ width: displayW, height: displayH }}
+
       position={{ x: a.x, y: a.y }}
       bounds="parent"
       onDragStop={(e, d) => updateArrow({ x: d.x, y: d.y })}
-      onResizeStop={(e, dir, ref, delta, position) =>
+      onResizeStop={(e, dir, ref, delta, position) => {
+        const newW = parseInt(ref.style.width, 10);
+        const newH = parseInt(ref.style.height, 10);
+
         updateArrow({
-          w: parseInt(ref.style.width, 10),
-          h: parseInt(ref.style.height, 10),
+          w: isVertical ? newH : newW,
+          h: isVertical ? newW : newH,
           x: position.x,
-          y: position.y
-        })
-      }
+          y: position.y,
+        });
+      }}
+
       style={{
         transform: `rotate(${a.angle}deg)`,
         transformOrigin: "center center",
@@ -911,7 +925,7 @@ function Arrow({ a, index, setArrows, pushHistory, selectedArrowId, onSelect, as
               }}
             />
           ) : (
-            <ArrowVisual type={a.type} width={a.w} offsetY={20} angle={a.angle || 0} />
+            <ArrowVisual type={a.type} width={displayW} offsetY={20} angle={a.angle || 0} />
           )}
         </div>
 
@@ -940,7 +954,7 @@ function Arrow({ a, index, setArrows, pushHistory, selectedArrowId, onSelect, as
           // UP ARROW → 270 degrees
           if (a.angle === 270) {
             extra = {
-              top: -60,
+              top: -displayH / 3 + 20,  // place above arrow head
               left: "50%",
               transform: "translateX(-50%)",
             };
@@ -949,7 +963,7 @@ function Arrow({ a, index, setArrows, pushHistory, selectedArrowId, onSelect, as
           // DOWN ARROW → 90 degrees
           if (a.angle === 90) {
             extra = {
-              bottom: -105,
+              top: displayH / 3 + 20, // place below arrow head
               left: "50%",
               transform: "translateX(-50%)",
             };

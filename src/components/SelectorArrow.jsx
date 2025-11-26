@@ -1,14 +1,29 @@
 import React from "react";
 import { Rnd } from "react-rnd";
 
-export default function SelectorArrow({ a, index, setArrows, pushHistory, onSelect }) {
+export default function SelectorArrow({ a, index, setArrows, pushHistory, onSelect, askConfirm, // new optional prop
+}) {
+  const handleDoubleClick = (e) => {
+    // e.stopPropagation();
+
+    const doDelete = () => {
+      setArrows((prev) => prev.filter((_, i) => i !== index));
+      pushHistory?.();
+    };
+
+    if (typeof askConfirm === "function") {
+      askConfirm("Delete this Bracket connector?", doDelete);
+    } else {
+      doDelete();
+    }
+  };
   return (
     <Rnd
       size={{ width: a.w, height: a.h }}
       position={{ x: a.x, y: a.y }}
       onDoubleClick={() => {
         // Remove this arrow on double click
-        setArrows((prev) => prev.filter((item) => item.id !== a.id));
+        handleDoubleClick()
       }}
       onDragStop={(e, d) => {
         setArrows((prev) =>
@@ -23,11 +38,11 @@ export default function SelectorArrow({ a, index, setArrows, pushHistory, onSele
           prev.map((item, i) =>
             i === index
               ? {
-                  ...item,
-                  w: parseFloat(ref.style.width),
-                  h: parseFloat(ref.style.height),
-                  ...pos,
-                }
+                ...item,
+                w: parseFloat(ref.style.width),
+                h: parseFloat(ref.style.height),
+                ...pos,
+              }
               : item
           )
         );
@@ -75,6 +90,37 @@ export default function SelectorArrow({ a, index, setArrows, pushHistory, onSele
           strokeWidth="2"
         />
       </svg>
+      {/* Editable Text Below Center Line */}
+      <div
+        contentEditable
+        suppressContentEditableWarning
+        onBlur={(e) => {
+          pushHistory?.();
+          setArrows(prev =>
+            prev.map((item, i) =>
+              i === index ? { ...item, text: e.target.innerText } : item
+            )
+          );
+        }}
+        style={{
+          position: "absolute",
+          top: a.h + 25,          // place below bottom center vertical line (20) + 5px gap
+          left: "50%",
+          transform: "translateX(-50%)",
+          padding: "2px 6px",
+          minWidth: 40,
+          textAlign: "center",
+          background: "transparent",
+          border: "1px solid #000",
+          borderRadius: 3,
+          fontSize: 12,
+          cursor: "text",
+          zIndex: 500,
+        }}
+      >
+        {a.text || ""}
+      </div>
+
     </Rnd>
   );
 }

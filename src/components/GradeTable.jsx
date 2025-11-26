@@ -42,9 +42,9 @@ export default function GradeTable({
             </select>
           </div>
 
-        <button
-  onClick={() => { setEditingRowId(null); addRow(null); }}
-  className="
+          <button
+            onClick={() => { setEditingRowId(null); addRow(null); }}
+            className="
     flex items-center gap-1 
     text-green-600 text-sm font-medium 
     border border-green-500 
@@ -54,10 +54,10 @@ export default function GradeTable({
     active:bg-green-100 
     transition
   "
->
-  <FiPlus size={16} />
-  Add
-</button>
+          >
+            <FiPlus size={16} />
+            Add
+          </button>
 
         </div>
       </div>
