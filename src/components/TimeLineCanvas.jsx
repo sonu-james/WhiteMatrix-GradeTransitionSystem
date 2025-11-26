@@ -306,18 +306,18 @@ export default function TimelineCanvas({
             onMouseDown={() => onSelect(p.id)}
           >
             <div style={{ position: "relative", zIndex: 2 }}>
-              <div className="font-semibold text-sm">{p.grade}</div>
-              <div className="text-xs">{p.code}</div>
-              <div className="text-[11px] opacity-90">
-                {p.type} • {format(p.ton)}T • GP:{format(p.gp)}
-              </div>
-            </div>
+  <div className="font-semibold text-sm">{p.grade}</div>
+  <div className="text-xs">{p.code}</div>
+  <div className="text-[11px] opacity-90">
+    {p.type} • {format(p.ton)}T • GP:{format(p.gp)}
+  </div>
+</div>
             {/* Arrow overlay inside block */}
             {p.blockType !== "normal" && (
               <svg
                 width={p.pxWidth}
                 height={100}
-                style={{ position: "absolute", top: 0, left: 0, pointerEvents: "none", overflow: "visible", zIndex: 0, }}>
+                style={{ position: "absolute", top: 0, left: 0, pointerEvents: "none", overflow: "visible",       zIndex: 0,           }}>
                 {p.blockType === "increase" ? (
                   <>
                     <line x1={0} y1={100} x2={p.pxWidth} y2={0} stroke="#474242ff" strokeWidth={2} />
@@ -811,11 +811,12 @@ function RotatableArrow({ w = 120, h = 40, angle = 0, onChangeAngle }) {
 
 function Arrow({ a, index, setArrows, pushHistory, selectedArrowId, onSelect, askConfirm }) {
   const wrapperRef = React.useRef(null);
+  const [hover, setHover] = React.useState(false);
 
   const isVertical = a.angle === 90 || a.angle === 270;
 
-  const displayW = isVertical ? a.h : a.w;
-  const displayH = isVertical ? a.w : a.h;
+const displayW = isVertical ? a.h+50 : a.w;
+const displayH = isVertical ? a.w : a.h;
 
   const updateArrow = (patch) =>
     setArrows(prev => {
@@ -856,22 +857,24 @@ function Arrow({ a, index, setArrows, pushHistory, selectedArrowId, onSelect, as
   return (
     <Rnd
       ref={wrapperRef}
-      size={{ width: displayW, height: displayH }}
+     size={{ width: displayW, height: displayH }}
 
       position={{ x: a.x, y: a.y }}
+      onMouseEnter={() => setHover(true)}
+  onMouseLeave={() => setHover(false)}
       bounds="parent"
       onDragStop={(e, d) => updateArrow({ x: d.x, y: d.y })}
       onResizeStop={(e, dir, ref, delta, position) => {
-        const newW = parseInt(ref.style.width, 10);
-        const newH = parseInt(ref.style.height, 10);
+  const newW = parseInt(ref.style.width, 10);
+  const newH = parseInt(ref.style.height, 10);
 
-        updateArrow({
-          w: isVertical ? newH : newW,
-          h: isVertical ? newW : newH,
-          x: position.x,
-          y: position.y,
-        });
-      }}
+  updateArrow({
+    w: isVertical ? newH : newW,
+    h: isVertical ? newW : newH,
+    x: position.x,
+    y: position.y,
+  });
+}}
 
       style={{
         transform: `rotate(${a.angle}deg)`,
@@ -888,6 +891,80 @@ function Arrow({ a, index, setArrows, pushHistory, selectedArrowId, onSelect, as
         });
       }}
     >
+      {/* + and - SIZE BUTTONS (show only on hover) */}
+{hover && (
+  <>
+    {/* Increase Size (+) */}
+    <div
+      onClick={() => {
+        pushHistory();
+        updateArrow(isVertical ? { h: a.h + 10 } : { w: a.w + 10 });
+      }}
+      style={{
+        position: "absolute",
+        ...(isVertical
+          ? {
+              top: -25,
+              left: "80%",
+              transform: "translateX(-50%)",
+            }
+          : {
+              right: -4,
+              top: "50%",
+              transform: "translateY(-50%)",
+            }),
+        width: 18,
+        height: 18,
+        background: "#3aa6d8",
+        color: "white",
+        borderRadius: "50%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        cursor: "pointer",
+        zIndex: 500,
+      }}
+    >
+      +
+    </div>
+
+    {/* Decrease Size (–) */}
+    <div
+      onClick={() => {
+        pushHistory();
+        updateArrow(isVertical ? { h: Math.max(20, a.h - 10) } : { w: Math.max(20, a.w - 10) });
+      }}
+      style={{
+        position: "absolute",
+        ...(isVertical
+          ? {
+              bottom: 30,
+              left: "80%",
+              transform: "translateX(-50%)",
+            }
+          : {
+              left: -4,
+              top: "50%",
+              transform: "translateY(-50%)",
+            }),
+        width: 18,
+        height: 18,
+        background: "#d35858ff",
+        color: "white",
+        borderRadius: "50%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        cursor: "pointer",
+        zIndex: 500,
+      }}
+    >
+      –
+    </div>
+  </>
+)}
+
+
       <div style={{ width: "100%", height: "100%", position: "relative" }}>
 
         {/* Rotation handle - only visible if selected */}
@@ -925,7 +1002,7 @@ function Arrow({ a, index, setArrows, pushHistory, selectedArrowId, onSelect, as
               }}
             />
           ) : (
-            <ArrowVisual type={a.type} width={displayW} offsetY={20} angle={a.angle || 0} />
+            <ArrowVisual type={a.type}  width={displayW} offsetY={20} angle={a.angle || 0} />
           )}
         </div>
 
@@ -954,7 +1031,7 @@ function Arrow({ a, index, setArrows, pushHistory, selectedArrowId, onSelect, as
           // UP ARROW → 270 degrees
           if (a.angle === 270) {
             extra = {
-              top: -displayH / 3 + 20,  // place above arrow head
+              top: -displayH /2+10 ,  // place above arrow head
               left: "50%",
               transform: "translateX(-50%)",
             };
@@ -963,7 +1040,7 @@ function Arrow({ a, index, setArrows, pushHistory, selectedArrowId, onSelect, as
           // DOWN ARROW → 90 degrees
           if (a.angle === 90) {
             extra = {
-              top: displayH / 3 + 20, // place below arrow head
+              top: displayH /2 + 30, // place below arrow head
               left: "50%",
               transform: "translateX(-50%)",
             };
