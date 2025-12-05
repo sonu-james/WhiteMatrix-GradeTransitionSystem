@@ -145,7 +145,7 @@ export default function TimelineCanvas({
       {/* Diagram wrapper (ref attached) */}
       <div
         ref={diagramRef}
-        style={{ position: "relative", minHeight: 500 }}
+        style={{ position: "relative", minHeight: 520 }}
         onClick={(e) => {
           if (!placingDiagonal) return;
           const wrapper = e.currentTarget;
