@@ -11,11 +11,11 @@ const LOCAL_KEY = "grade-timeline-v2";
 const SCALE = 1;
 
 const demoInitial = [
-  { id: 1, grade: "A", code: "GT1", type: "Quality2", width: 220, color: "#2B86D6", ton: 20, gp: 8.5, blockType: "normal" },
-  { id: 2, grade: "B", code: "—", type: "Quality1", width: 220, color: "#F2C94C", ton: 0, gp: null, blockType: "increase" },
-  { id: 3, grade: "C", code: "GT2", type: "Quality3", width: 220, color: "#E74C3C", ton: 0, gp: null, blockType: "decrease" },
-  { id: 4, grade: "D", code: "GT3", type: "—", width: 220, color: "#9AA0A6", ton: 0, gp: null, blockType: "normal" },
-  { id: 5, grade: "E", code: "GT4", type: "Quality4", width: 220, color: "#27AE60", ton: 300, gp: 16.7, blockType: "increase" },
+  { id: 1, grade: "A", code: "GT1", type: "Quality2", width: 200, color: "#2B86D6", ton: 20, gp: 8.5, blockType: "normal" },
+  { id: 2, grade: "B", code: "—", type: "Quality1", width: 200, color: "#F2C94C", ton: 0, gp: null, blockType: "increase" },
+  { id: 3, grade: "C", code: "GT2", type: "Quality3", width: 200, color: "#E74C3C", ton: 0, gp: null, blockType: "decrease" },
+  { id: 4, grade: "D", code: "GT3", type: "—", width: 200, color: "#9AA0A6", ton: 0, gp: null, blockType: "normal" },
+  { id: 5, grade: "E", code: "GT4", type: "Quality4", width: 200, color: "#27AE60", ton: 300, gp: 16.7, blockType: "increase" },
 ];
 
 export default function GradeTimelineEditor() {
@@ -27,6 +27,7 @@ export default function GradeTimelineEditor() {
   });
 
   const [selectedId, setSelectedId] = useState(null);
+  
   const [history, setHistory] = useState([]);
   const [future, setFuture] = useState([]);
   const [arrows, setArrows] = useState([]);
@@ -187,52 +188,51 @@ export default function GradeTimelineEditor() {
         y: 150,
         w: 160,
         h: 30,
-        color: "#111",
-      },
+color: "#302d2d"         },
     ]);
   };
 
   // === RENDER ===
   return (
     <div className="p-2 md:p-6 bg-gray-50">
-      <div className="flex flex-wrap justify-between items-center p-3 bg-white rounded shadow mb-3">
+     <div className="flex flex-wrap justify-between items-center p-3 bg-white rounded shadow mb-3">
 
-        {/* Left controls */}
-        <TopControls
-          undo={undo}
-          redo={redo}
-          resetDemo={resetDemo}
-          addRow={addRow}
-        />
+  {/* Left controls */}
+  <TopControls
+    undo={undo}
+    redo={redo}
+    resetDemo={resetDemo}
+    addRow={addRow}
+  />
 
-        {/* Export buttons */}
-        <div className="flex gap-2 items-center mt-2 md:mt-0">
-          <button
-            onClick={() => exportTimelinePDF(canvasRef)}
-            className="flex items-center gap-2 px-3 py-2 bg-purple-500 text-white rounded hover:bg-purple-600"
-          >
-            <FaFilePdf className="text-lg" />
-            Export PDF
-          </button>
+  {/* Export buttons */}
+  <div className="flex gap-2 items-center mt-2 md:mt-0">
+    <button
+      onClick={() => exportTimelinePDF(canvasRef)}
+      className="flex items-center gap-2 px-3 py-2 bg-purple-500 text-white rounded hover:bg-purple-600"
+    >
+      <FaFilePdf className="text-lg" />
+      Export PDF
+    </button>
 
-          <button
-            onClick={() => exportExcel(rows)}
-            className="flex items-center gap-2 px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-          >
-            <FaFileExcel className="text-lg" />
-            Export Excel
-          </button>
+    <button
+      onClick={() => exportExcel(rows)}
+      className="flex items-center gap-2 px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+    >
+      <FaFileExcel className="text-lg" />
+      Export Excel
+    </button>
 
-          <button
-            onClick={() => exportTimelinePPT(canvasRef)}
-            className="flex items-center gap-2 px-3 py-2 bg-orange-500 text-white rounded hover:bg-orange-600"
-          >
-            <FaFilePowerpoint className="text-lg" />
-            Export PPT
-          </button>
-        </div>
+    <button
+      onClick={() => exportTimelinePPT(canvasRef)}
+      className="flex items-center gap-2 px-3 py-2 bg-orange-500 text-white rounded hover:bg-orange-600"
+    >
+      <FaFilePowerpoint className="text-lg" />
+      Export PPT
+    </button>
+  </div>
 
-      </div>
+</div>
 
 
       <GradeTable
@@ -263,7 +263,7 @@ export default function GradeTimelineEditor() {
         onAddDoubleArrow={() => {
           setArrows((prev) => [
             ...prev,
-            { type: "double", x: 200, y: 200, w: 140, h: 24, angle: 0, text: "Double Arrow" },
+            { type: "double", x: 200, y: 200, w: 140, h: 24, angle: 0, text: "Double Arrow",color: "#302d2d"    },
           ]);
         }}
         onAddElbowArrow={handleAddElbowArrow}
@@ -275,7 +275,7 @@ export default function GradeTimelineEditor() {
         }}
         onAddLabel={() => {
           pushHistory();
-          setLabels((p) => [...p, { x: 150, y: 60, text: "New Label", w: 120, h: 28, angle: 0 }]);
+          setLabels((p) => [...p, { x: 150, y: 60, text: "New Label", w: 120, h: 28 , angle: 0 }]);
         }}
         onAddSSSwitch={() => {
           pushHistory();
@@ -288,7 +288,7 @@ export default function GradeTimelineEditor() {
       {/* bigger canvas container now */}
       <div
         ref={canvasRef}
-        className="w-full h-[55vh] md:h-[600px] relative bg-white rounded shadow"
+        className="w-full h-[55vh] md:h-[650px] relative bg-white rounded shadow"
       >
         <TimelineCanvas
           positioned={positioned}

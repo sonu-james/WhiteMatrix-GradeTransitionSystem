@@ -25,6 +25,7 @@ export default function TimelineCanvas({
   pushHistory,
 }) {
   const [selectedLabelId, setSelectedLabelId] = useState(null);
+  const [selectedArrowIndex, setSelectedArrowIndex] = useState(null);
   const dragStartXRef = useRef(null);
   // Tailwind Confirmation Modal State
   const [confirmModal, setConfirmModal] = useState({
@@ -174,7 +175,8 @@ export default function TimelineCanvas({
                 y: y1,
                 w: Math.sqrt(dx * dx + dy * dy),
                 h: 30,
-                angle
+                angle,
+                color: "#302d2d"
               }
             ]);
             pushHistory?.();
@@ -208,58 +210,85 @@ export default function TimelineCanvas({
         })}
 
         {/* custom markers added by toolbar */}
-        {customMarkers.map((m, i) => (
-          <Rnd
-            key={"cm" + i}
-            size={{ width: 2, height: Math.max(40, diagramHeight) }}
-            position={{ x: m.x, y: 0 }}
-            bounds="parent"
-            enableResizing={false}
-            onDragStop={(e, d) => {
-              pushHistory();
-              setCustomMarkers(prev =>
-                updateByIndex(prev, i, { x: d.x })
-              );
-            }}
-            style={{ zIndex: 60, overflow: "visible" }}
-          >
-            <div style={{ borderLeft: "2px dotted #444", height: "100%" }} />
-            <div
-              contentEditable
-              suppressContentEditableWarning
-              onBlur={(e) => {
-                pushHistory();
-                setCustomMarkers(prev =>
-                  updateByIndex(prev, i, { text: e.target.innerText })
-                );
-              }}
-              style={{
-                position: "absolute",
-                top: -16,
-                left: -10,
-                background: "#fff",
-                textAlign: "center",
-                border: "5px solid #ee1f1fff",
-                padding: "2px 4px",
-                fontSize: 12,
-                fontWeight: "bold",
-                color: "red",
-                borderRadius: 3,
-                minWidth: 100,
-              }}
-              title="Edit text, drag to move, double click container to delete"
-              onDoubleClick={(e) => {
-                e.stopPropagation();
-                askConfirm("Delete this custom marker?", () => {
-                  pushHistory?.();
-                  removeMarker(i);
-                });
-              }}
-            >
-              {m.text || "SWITCH"}
-            </div>
-          </Rnd>
-        ))}
+       {customMarkers.map((m, i) => (
+  <Rnd
+    key={"cm" + i}
+    size={{
+      width: 2,
+      height: m.h || Math.max(30, diagramHeight-50) // store height per marker
+    }}
+    position={{
+      x: m.x,
+      y: m.y || 50 // allow vertical offset later if needed
+    }}
+    bounds="parent"
+    enableResizing={{
+      top: true,
+      bottom: true,
+      left: false,
+      right: false
+    }}
+    onResizeStop={(e, dir, ref, delta, pos) => {
+      pushHistory();
+      setCustomMarkers(prev =>
+        updateByIndex(prev, i, {
+          h: parseInt(ref.style.height, 10),
+          y: pos.y
+        })
+      );
+    }}
+    onDragStop={(e, d) => {
+      pushHistory();
+      setCustomMarkers(prev =>
+        updateByIndex(prev, i, { x: d.x, y: d.y })
+      );
+    }}
+    style={{
+      zIndex: 60,
+      overflow: "visible",
+      cursor: "ns-resize"
+    }}
+  >
+    {/* Vertical dotted line */}
+    <div style={{ borderLeft: "2px dotted #444", height: "100%" }} />
+
+    {/* Editable Label */}
+    <div
+      contentEditable
+      suppressContentEditableWarning
+      onBlur={(e) => {
+        pushHistory();
+        setCustomMarkers(prev =>
+          updateByIndex(prev, i, { text: e.target.innerText })
+        );
+      }}
+      style={{
+        position: "absolute",
+        top: -16,
+        left: -40,
+        background: "#fff",
+        textAlign: "center",
+        border: "5px solid #ee1f1fff",
+        padding: "2px 4px",
+        fontSize: 12,
+        fontWeight: "bold",
+        color: "red",
+        borderRadius: 3,
+        minWidth: 100,
+      }}
+      title="Edit text, drag to move, double click to delete"
+      onDoubleClick={(e) => {
+        e.stopPropagation();
+        askConfirm("Delete this custom marker?", () => {
+          pushHistory?.();
+          removeMarker(i);
+        });
+      }}
+    >
+      {m.text || "SWITCH"}
+    </div>
+  </Rnd>
+))}
 
 
         {/* Blocks (positioned) */}
@@ -306,18 +335,18 @@ export default function TimelineCanvas({
             onMouseDown={() => onSelect(p.id)}
           >
             <div style={{ position: "relative", zIndex: 2 }}>
-  <div className="font-semibold text-sm">{p.grade}</div>
-  <div className="text-xs">{p.code}</div>
-  <div className="text-[11px] opacity-90">
-    {p.type} • {format(p.ton)}T • GP:{format(p.gp)}
-  </div>
-</div>
+              <div className="font-semibold text-sm">{p.grade}</div>
+              <div className="text-xs">{p.code}</div>
+              <div className="text-[11px] opacity-90">
+                {p.type} • {format(p.ton)}T • GP:{format(p.gp)}
+              </div>
+            </div>
             {/* Arrow overlay inside block */}
             {p.blockType !== "normal" && (
               <svg
                 width={p.pxWidth}
                 height={100}
-                style={{ position: "absolute", top: 0, left: 0, pointerEvents: "none", overflow: "visible",       zIndex: 0,           }}>
+                style={{ position: "absolute", top: 0, left: 0, pointerEvents: "none", overflow: "visible", zIndex: 0, }}>
                 {p.blockType === "increase" ? (
                   <>
                     <line x1={0} y1={100} x2={p.pxWidth} y2={0} stroke="#474242ff" strokeWidth={2} />
@@ -815,8 +844,12 @@ function Arrow({ a, index, setArrows, pushHistory, selectedArrowId, onSelect, as
 
   const isVertical = a.angle === 90 || a.angle === 270;
 
-const displayW = isVertical ? a.h+50 : a.w;
-const displayH = isVertical ? a.w : a.h;
+  const isUpArrow = a.angle === 270;
+  const isRotatable = a.type === "rotatable";
+
+
+  const displayW = isVertical ? a.h + 50 : a.w;
+  const displayH = isVertical ? a.w : a.h;
 
   const updateArrow = (patch) =>
     setArrows(prev => {
@@ -857,24 +890,24 @@ const displayH = isVertical ? a.w : a.h;
   return (
     <Rnd
       ref={wrapperRef}
-     size={{ width: displayW, height: displayH }}
+      size={{ width: displayW, height: displayH }}
 
       position={{ x: a.x, y: a.y }}
       onMouseEnter={() => setHover(true)}
-  onMouseLeave={() => setHover(false)}
+      onMouseLeave={() => setHover(false)}
       bounds="parent"
       onDragStop={(e, d) => updateArrow({ x: d.x, y: d.y })}
       onResizeStop={(e, dir, ref, delta, position) => {
-  const newW = parseInt(ref.style.width, 10);
-  const newH = parseInt(ref.style.height, 10);
+        const newW = parseInt(ref.style.width, 10);
+        const newH = parseInt(ref.style.height, 10);
 
-  updateArrow({
-    w: isVertical ? newH : newW,
-    h: isVertical ? newW : newH,
-    x: position.x,
-    y: position.y,
-  });
-}}
+        updateArrow({
+          w: isVertical ? newH : newW,
+          h: isVertical ? newW : newH,
+          x: position.x,
+          y: position.y,
+        });
+      }}
 
       style={{
         transform: `rotate(${a.angle}deg)`,
@@ -892,77 +925,113 @@ const displayH = isVertical ? a.w : a.h;
       }}
     >
       {/* + and - SIZE BUTTONS (show only on hover) */}
-{hover && (
-  <>
-    {/* Increase Size (+) */}
-    <div
-      onClick={() => {
-        pushHistory();
-        updateArrow(isVertical ? { h: a.h + 10 } : { w: a.w + 10 });
-      }}
-      style={{
-        position: "absolute",
-        ...(isVertical
-          ? {
-              top: -25,
-              left: "80%",
-              transform: "translateX(-50%)",
-            }
-          : {
-              right: -4,
-              top: "50%",
-              transform: "translateY(-50%)",
-            }),
-        width: 18,
-        height: 18,
-        background: "#3aa6d8",
-        color: "white",
-        borderRadius: "50%",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        cursor: "pointer",
-        zIndex: 500,
-      }}
-    >
-      +
-    </div>
+      {hover && (
+        <>
+          {/* Increase Size (+) */}
+          <div
+            onClick={() => {
+              pushHistory();
+              updateArrow(isVertical ? { h: a.h + 10 } : { w: a.w + 10 });
+            }}
+            style={{
+              position: "absolute",
+              ...(isVertical
+                ? {
+                  top: isRotatable ? -10 : -25,
+                  left: "80%",
+                  transform: "translateX(-50%)",
+                }
+                : {
+                  right: -4,
+                  top: isRotatable ? "95%" : "50%",
+                  transform: "translateY(-50%)",
+                }),
+              width: 18,
+              height: 18,
+              background: "#3aa6d8",
+              color: "white",
+              borderRadius: "50%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              zIndex: 500,
+            }}
+          >
+            +
+          </div>
 
-    {/* Decrease Size (–) */}
-    <div
-      onClick={() => {
-        pushHistory();
-        updateArrow(isVertical ? { h: Math.max(20, a.h - 10) } : { w: Math.max(20, a.w - 10) });
-      }}
-      style={{
-        position: "absolute",
-        ...(isVertical
-          ? {
-              bottom: 30,
-              left: "80%",
-              transform: "translateX(-50%)",
-            }
-          : {
-              left: -4,
-              top: "50%",
-              transform: "translateY(-50%)",
-            }),
-        width: 18,
-        height: 18,
-        background: "#d35858ff",
-        color: "white",
-        borderRadius: "50%",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        cursor: "pointer",
-        zIndex: 500,
-      }}
-    >
-      –
-    </div>
-  </>
-)}
+          {/* Decrease Size (–) */}
+          <div
+            onClick={() => {
+              pushHistory();
+              updateArrow(isVertical ? { h: Math.max(20, a.h - 10) } : { w: Math.max(20, a.w - 10) });
+            }}
+            style={{
+              position: "absolute",
+              ...(isVertical
+                ? {
+                  bottom: 30,
+                  left: "80%",
+                  transform: "translateX(-50%)",
+                }
+                : {
+                  left: -4,
+                  top: isRotatable ? "95%" : "50%",
+                  transform: "translateY(-50%)",
+                }),
+              width: 18,
+              height: 18,
+              background: "#d83a3a",
+              color: "white",
+              borderRadius: "50%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              zIndex: 500,
+            }}
+          >
+            –
+          </div>
+          {/* 🎨 COLOR PICKER BUTTON */}
+          <input
+            type="color"
+            value={a.color || "#302d2d"}
+            onChange={(e) => {
+              const newColor = e.target.value;
+              pushHistory();
+              setArrows(prev => {
+                const copy = [...prev];
+                copy[index] = { ...copy[index], color: newColor };
+                return copy;
+              });
+            }}
+            style={{
+              position: "absolute",
+              ...(isVertical
+                ? {
+                  top: 25,
+                  left: "60%",
+                  transform: "translateX(-50%)",
+                }
+                : {
+                  right: -15,
+                  top: "70%",
+                  transform: "translateY(-50%)",
+                }),
+              transform: "translateX(50%)",
+              width: 22,
+              height: 22,
+              border: "2px solid white",
+              borderRadius: "6px",
+              cursor: "pointer",
+              zIndex: 500,
+              padding: 0,
+            }}
+          />
+        </>
+      )}
 
 
       <div style={{ width: "100%", height: "100%", position: "relative" }}>
@@ -1002,7 +1071,7 @@ const displayH = isVertical ? a.w : a.h;
               }}
             />
           ) : (
-            <ArrowVisual type={a.type}  width={displayW} offsetY={20} angle={a.angle || 0} />
+            <ArrowVisual type={a.type} width={displayW} offsetY={20} angle={a.angle || 0} color={a.color || "#302d2d"} />
           )}
         </div>
 
@@ -1012,7 +1081,6 @@ const displayH = isVertical ? a.w : a.h;
             position: "absolute",
             padding: "2px 6px",
             background: "transparent",
-            border: "1px solid #ccc",
             borderRadius: 3,
             fontSize: 12,
             pointerEvents: "auto",
@@ -1031,7 +1099,7 @@ const displayH = isVertical ? a.w : a.h;
           // UP ARROW → 270 degrees
           if (a.angle === 270) {
             extra = {
-              top: -displayH /2+10 ,  // place above arrow head
+              top: -displayH / 2 + 10,  // place above arrow head
               left: "50%",
               transform: "translateX(-50%)",
             };
@@ -1040,7 +1108,7 @@ const displayH = isVertical ? a.w : a.h;
           // DOWN ARROW → 90 degrees
           if (a.angle === 90) {
             extra = {
-              top: displayH /2 + 30, // place below arrow head
+              top: displayH / 2 + 30, // place below arrow head
               left: "50%",
               transform: "translateX(-50%)",
             };
@@ -1066,7 +1134,7 @@ const displayH = isVertical ? a.w : a.h;
   );
 }
 
-function ArrowVisual({ type = "single", width = 80, offsetY = 10, angle = 0 }) {
+function ArrowVisual({ type = "single", width = 80, offsetY = 10, angle = 0, color = "#302d2d" }) {
   const lineWidth = Math.max(20, width - 24);
 
   const base = (
@@ -1084,12 +1152,13 @@ function ArrowVisual({ type = "single", width = 80, offsetY = 10, angle = 0 }) {
             height: 0,
             borderTop: "6px solid transparent",
             borderBottom: "6px solid transparent",
-            borderRight: "10px solid #423e3e",
+            borderRight: `10px solid ${color}`,
+
           }}
         />
       )}
 
-      <div style={{ height: 2, width: lineWidth, background: "#423e3e" }} />
+      <div style={{ height: 2, width: lineWidth, background: color }} />
 
       <div
         style={{
@@ -1097,7 +1166,7 @@ function ArrowVisual({ type = "single", width = 80, offsetY = 10, angle = 0 }) {
           height: 0,
           borderTop: "6px solid transparent",
           borderBottom: "6px solid transparent",
-          borderLeft: `10px solid ${type === "double" ? "#423e3e" : "#111"}`,
+          borderLeft: `10px solid ${color}`
         }}
       />
     </div>
@@ -1126,6 +1195,7 @@ function ArrowVisual({ type = "single", width = 80, offsetY = 10, angle = 0 }) {
 // --- FIXED LABEL COMPONENT ---
 function Label({ l, i, updateByIndex, pushHistory, setLabels, removeLabel, askConfirm }) {
   const innerRef = React.useRef(null);
+  const [hover, setHover] = React.useState(false);
 
   const startRotate = (e) => {
     e.stopPropagation();
@@ -1159,6 +1229,8 @@ function Label({ l, i, updateByIndex, pushHistory, setLabels, removeLabel, askCo
       size={{ width: l.w, height: l.h }}
       position={{ x: l.x, y: l.y || 60 }}
       bounds="parent"
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
       onDragStop={(e, d) => {
         pushHistory();
         setLabels((prev) => updateByIndex(prev, i, { x: d.x, y: d.y }));
@@ -1177,9 +1249,46 @@ function Label({ l, i, updateByIndex, pushHistory, setLabels, removeLabel, askCo
       style={{
         zIndex: 80,
         cursor: "grab",
+        overflow: "visible",
       }}
     >
-      {/* 🔥 Double click handler moved here to fix rotated delete problem */}
+      {/* 🎨 Color Picker (Hover) */}
+      {hover && (
+        <div
+          style={{
+            position: "absolute",
+            top: -36,
+            left: "80%",
+            transform: "translateX(-50%)",
+            background: "#fff",
+            padding: 4,
+            borderRadius: 6,
+            zIndex: 9999,
+            boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
+          }}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <input
+            type="color"
+            value={l.color || "#000000"}
+            onChange={(e) => {
+              pushHistory?.();
+              setLabels((prev) =>
+                updateByIndex(prev, i, { color: e.target.value })
+              );
+            }}
+            style={{
+              width: 22,
+              height: 22,
+              border: "1px solid #ccc",
+              borderRadius: 4,
+              cursor: "pointer",
+            }}
+          />
+        </div>
+      )}
+
+      {/* Rotatable + editable text */}
       <div
         ref={innerRef}
         onDoubleClick={(e) => {
@@ -1202,7 +1311,7 @@ function Label({ l, i, updateByIndex, pushHistory, setLabels, removeLabel, askCo
           userSelect: "none",
         }}
       >
-        {/* Rotation handle */}
+        {/* 🔄 Rotation handle */}
         <div
           onMouseDown={startRotate}
           style={{
@@ -1220,7 +1329,7 @@ function Label({ l, i, updateByIndex, pushHistory, setLabels, removeLabel, askCo
           title="Drag to rotate label"
         />
 
-        {/* Editable text */}
+        {/* ✏ Editable text */}
         <div
           contentEditable
           suppressContentEditableWarning
@@ -1232,14 +1341,12 @@ function Label({ l, i, updateByIndex, pushHistory, setLabels, removeLabel, askCo
           }}
           style={{
             padding: 6,
-            border: "1px solid #ccc",
             borderRadius: 4,
-            background: "transparent",
             minHeight: 20,
             fontSize: 14,
             textAlign: "center",
             pointerEvents: "auto",
-            color: "#000",
+            color: l.color || "#000", // 🟢 apply chosen color
           }}
           title="Edit text, drag to move, drag handle to rotate, double click to delete"
         >

@@ -1,126 +1,109 @@
-import React from "react";
+import React, { useState } from "react";
 import { Rnd } from "react-rnd";
 
-export default function SelectorArrow({ a, index, setArrows, pushHistory, onSelect, askConfirm, // new optional prop
+export default function SelectorArrow({
+  a,
+  index,
+  setArrows,
+  pushHistory,
+  onSelect,
+  askConfirm,
 }) {
+  const [hover, setHover] = useState(false);
+  const color = a.color || "#007bff";
+
   const handleDoubleClick = (e) => {
-    // e.stopPropagation();
+    e.stopPropagation();
 
     const doDelete = () => {
-      setArrows((prev) => prev.filter((_, i) => i !== index));
+      setArrows(prev => prev.filter((_, i) => i !== index));
       pushHistory?.();
     };
 
-    if (typeof askConfirm === "function") {
-      askConfirm("Delete this Bracket connector?", doDelete);
-    } else {
-      doDelete();
-    }
+    askConfirm ? askConfirm("Delete this Bracket connector?", doDelete) : doDelete();
   };
+
+  const updateArrow = (patch) =>
+    setArrows(prev => {
+      const copy = [...prev];
+      copy[index] = { ...copy[index], ...patch };
+      return copy;
+    });
+
   return (
     <Rnd
       size={{ width: a.w, height: a.h }}
       position={{ x: a.x, y: a.y }}
-      onDoubleClick={() => {
-        // Remove this arrow on double click
-        handleDoubleClick()
-      }}
-      onDragStop={(e, d) => {
-        setArrows((prev) =>
-          prev.map((item, i) =>
-            i === index ? { ...item, x: d.x, y: d.y } : item
-          )
-        );
-      }}
+      bounds="parent"
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      onDoubleClick={handleDoubleClick}
+      onDragStop={(e, d) => updateArrow({ x: d.x, y: d.y })}
       onResizeStop={(e, dir, ref, delta, pos) => {
         pushHistory?.();
-        setArrows((prev) =>
-          prev.map((item, i) =>
-            i === index
-              ? {
-                ...item,
-                w: parseFloat(ref.style.width),
-                h: parseFloat(ref.style.height),
-                ...pos,
-              }
-              : item
-          )
-        );
+        updateArrow({
+          w: parseFloat(ref.style.width),
+          h: parseFloat(ref.style.height),
+          ...pos,
+        });
       }}
-      bounds="parent"
+      style={{ overflow: "visible" }}
     >
+      {/* ---- COLOR PICKER (on hover) ---- */}
+      {hover && (
+        <div
+          style={{
+            position: "absolute",
+            top: -36,
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: "#fff",
+            padding: 4,
+            borderRadius: 6,
+            zIndex: 9999,
+            boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
+          }}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <input
+            type="color"
+            value={color}
+            onChange={(e) => {
+              pushHistory?.();
+              updateArrow({ color: e.target.value });
+            }}
+            style={{
+              width: 28,
+              height: 28,
+              cursor: "pointer",
+              border: "1px solid #ccc",
+              borderRadius: 4,
+            }}
+          />
+        </div>
+      )}
+
+      {/* ---- ARROW SVG SHAPE ---- */}
       <svg width="100%" height="100%" style={{ overflow: "visible" }}>
-        {/* Left vertical line */}
-        <line
-          x1={0}
-          y1={0}
-          x2={0}
-          y2={a.h}
-          stroke={a.color || "#007bff"}
-          strokeWidth="3"
-        />
+        {/* Left vertical */}
+        <line x1={0} y1={0} x2={0} y2={a.h} stroke={color} strokeWidth="3" />
 
-        {/* Bottom horizontal line */}
-        <line
-          x1={0}
-          y1={a.h}
-          x2={a.w}
-          y2={a.h}
-          stroke={a.color || "#007bff"}
-          strokeWidth="2"
-        />
+        {/* Bottom horizontal */}
+        <line x1={0} y1={a.h} x2={a.w} y2={a.h} stroke={color} strokeWidth="2" />
 
-        {/* Right vertical line */}
-        <line
-          x1={a.w}
-          y1={0}
-          x2={a.w}
-          y2={a.h}
-          stroke={a.color || "#007bff"}
-          strokeWidth="2"
-        />
+        {/* Right vertical */}
+        <line x1={a.w} y1={0} x2={a.w} y2={a.h} stroke={color} strokeWidth="2" />
 
-        {/* Center downward line */}
+        {/* Middle downward line */}
         <line
           x1={a.w / 2}
           y1={a.h}
           x2={a.w / 2}
-          y2={a.h + 20} // adjust 30 for how long you want the line
-          stroke={a.color || "#007bff"}
+          y2={a.h + 20}
+          stroke={color}
           strokeWidth="2"
         />
       </svg>
-      {/* Editable Text Below Center Line */}
-      <div
-        contentEditable
-        suppressContentEditableWarning
-        onBlur={(e) => {
-          pushHistory?.();
-          setArrows(prev =>
-            prev.map((item, i) =>
-              i === index ? { ...item, text: e.target.innerText } : item
-            )
-          );
-        }}
-        style={{
-          position: "absolute",
-          top: a.h + 25,          // place below bottom center vertical line (20) + 5px gap
-          left: "50%",
-          transform: "translateX(-50%)",
-          padding: "2px 6px",
-          minWidth: 40,
-          textAlign: "center",
-          background: "transparent",
-          border: "1px solid #000",
-          borderRadius: 3,
-          fontSize: 12,
-          cursor: "text",
-          zIndex: 500,
-        }}
-      >
-        {a.text || ""}
-      </div>
-
     </Rnd>
   );
 }
